@@ -1,0 +1,42 @@
+
+- name: create group
+  group:
+    name: cassandra
+    state: present
+  tags: cassandra
+
+- name: create user
+  user:
+    name: cassandra
+    group: cassandra
+  tags: cassandra
+
+- name: install tools
+  yum: name="@Development tools" state=present
+  tags: cassandra
+
+- name: Add cassandra repo
+  yum_repository:
+    name: cassandra
+    description: cassandra repo
+    baseurl: http://rpm.datastax.com/community
+    gpgcheck: no
+    enabled: yes
+  tags: cassandra
+- name: Install Cassandra
+  yum: 
+    name: dsc20
+    state: present
+  notify: start cassandra
+  tags: cassandra
+
+- name: reload systemd
+  sudo: yes
+  command: systemctl enable cassandra
+  tags: cassandra
+
+- name: Copy real config
+  template:
+    src: cassandra.yaml.j2
+    dest: /etc/cassandra/conf/cassandra.yaml"
+  tags: cassandra

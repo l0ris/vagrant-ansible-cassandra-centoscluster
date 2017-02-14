@@ -1,0 +1,68 @@
+---
+cluster_name: testcluster
+dse_version: '4.8'
+opscenter_dc: 'opscenter'
+admin_password: 'admin'
+
+opscenter_config:
+  port: 8888
+  logging_level: 'INFO'
+  authentication: true
+  repair_service: true
+  repair_time_to_completion: 777600  ## 9 days
+  use_ssl_agents: false
+  default_api_timeout: 60
+  add_cluster_timeout: 120
+
+# set to true to show host variables
+debug: false
+
+cloud_config:
+  domain: 'localnet'
+  allowed_external_ips: ['127.0.0.1']
+
+topology:
+  - dc_name: DC1
+    options:
+      workloads:
+        - cassandra
+      tokens: 256
+      group: 'dse-c-iad'
+      cassandra_base_path: "/var/lib/cassandra"
+      listen_interface: 'eth1'
+      broadcast_interface: 'eth0'
+      rpc_interface: 'eth1'
+
+  - dc_name: DC2
+    options:
+      workloads:
+        - search
+        - spark
+      tokens: 64
+      group: 'dse-sa-dfw'
+      data_disks_devices: []
+      cassandra_base_path: "/var/lib/cassandra"
+      listen_interface: 'eth1'
+      broadcast_interface: 'eth0'
+      rpc_interface: 'eth0'
+
+  - dc_name: DC3
+    options:
+      workloads:
+        - cassandra
+        - analytics
+      tokens: 64
+      group: 'dse-c-static'
+      cassandra_base_path: "/var/lib/cassandra"
+      listen_interface: 'bond0'
+      broadcast_interface: 'bond0'
+      rpc_interface: 'bond0'
+
+  - dc_name: opscenter
+    options:
+      group: 'opscenter-node'
+      data_disks_devices: []
+      cassandra_base_path: "/var/lib/cassandra"
+      listen_interface: 'eth1'
+      broadcast_interface: 'eth0'
+      rpc_interface: 'eth1'

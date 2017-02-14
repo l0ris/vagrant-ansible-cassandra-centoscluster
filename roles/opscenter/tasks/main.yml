@@ -1,0 +1,48 @@
+---
+- name: Add opencenter repository
+  yum_repository:
+    name: opencenter
+    description: Opencentr YUM repo
+    baseurl: http://rpm.datastax.com/community
+    gpgcheck: no
+    enabled: yes
+
+- name: Install OpsCenter (yum)
+  yum:
+    name: "{{ item }}"
+    update_cache: yes
+    state: installed
+  with_items:
+    - opscenter
+  when: ansible_os_family == "RedHat"
+  notify: Reload systemd
+
+
+- name: Update OpsCenter configuration
+  template: src=opscenterd.conf.j2 dest=/etc/opscenter/opscenterd.conf
+  notify: Restart opscenter
+
+- meta: flush_handlers
+
+- name: Make sure OpsCenter is running
+  service: name=opscenterd state=started enabled=yes
+  tags:
+    - services
+
+- name: Waiting for OpsCenter to start listening on port {{ opscenter_config.port }}
+  wait_for: host={{ ansible_nodename }} port={{ opscenter_config.port }}
+
+
+#- name: Set cluster_def fact
+#  set_fact: cluster_def="{{ cluster_def_b64.content|b64decode }}"
+
+- name: Login to {{ cluster_name }} if authentication is enabled
+  uri:
+    url=http://{{ ansible_nodename }}:{{ opscenter_config.port }}/login
+    method=POST
+    body=' {"username":"admin","password":"{{ admin_password }}"}'
+    body_format=raw
+    status_code=200
+    return_content=yes
+  when: opscenter_config.authentication
+  register: current_session

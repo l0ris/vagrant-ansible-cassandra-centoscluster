@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Public</short>
+  <description>For use in public areas. You do not trust the other computers on networks to not harm your computer. Only selected incoming connections are accepted.</description>
+  <service name="dhcpv6-client"/>
+  <service name="ssh"/>
+  <rule family="ipv4">
+    <source address="{{ address_cidr }}/24"/>
+    <port protocol="tcp" port="7000"/>
+    <accept/>
+  </rule>
+  <rule family="ipv4">
+    <source address="{{ address_cidr }}/24"/>
+    <port protocol="tcp" port="9160"/>
+    <accept/>
+  </rule>
+  <rule family="ipv4">
+    <source address="{{ address_cidr }}/24"/>
+    <port protocol="tcp" port="61619-61621"/>
+    <accept/>
+  </rule>
+  <rule family="ipv4">
+    <source address="{{ address_cidr }}/24"/>
+    <port protocol="tcp" port="7199"/>
+    <accept/>
+  </rule>
+  <rule family="ipv4">
+    <source address="{{ address_cidr }}/24"/>
+    <port protocol="tcp" port="9042"/>
+    <accept/>
+  </rule>
+</zone>

@@ -1,0 +1,105 @@
+---
+- name: Load OS specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_os_family|lower }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_os_family|lower }}-{{ ansible_distribution|lower }}.yml"
+        - "{{ ansible_os_family|lower }}.yml"
+        - defaults.yml
+      paths:
+        - ../vars
+- name: Install net-tools
+  yum: name=net-tools state=present 
+
+- name: Install epel-release
+  yum:
+    name: "{{ epel_yum }}"
+    state: present
+    update_cache: yes
+  ignore_errors: true
+  register: epel_result
+  when: ansible_os_family == "RedHat"
+
+- name: Install epel-release (rpm)
+  yum:
+    name: "{{ epel_rpm_url }}"
+    state: present
+  when: ansible_os_family == "RedHat" and epel_result|failed
+
+- name: Ensure required packages are installed (yum)
+  yum:
+    name: "{{ item }}"
+    update_cache: yes
+    state: installed
+  with_items: "{{ packages|default([]) }}"
+  when: ansible_os_family == "RedHat"
+
+
+- name: Upgrade all packages (yum)
+  yum: name=* state=latest
+  when: ansible_os_family == "RedHat"
+
+- name: Set swappiness to 1
+  sysctl: name=vm.swappiness value=1 state=present ignoreerrors=yes
+  tags:
+    - configuration
+
+- name: Make sure the NTP service is stopped
+  service: name={{ ntp_service }} state=stopped
+
+- name: Force NTP sync
+  command: "{{ ntp_sync }}"
+
+- name: Start the NTP service
+  service: name={{ ntp_service }} state=started enabled=yes
+  tags:
+    - services
+
+- name: Set nofile limits
+  lineinfile: dest=/etc/security/limits.conf
+              insertbefore="^# End of file"
+              state=present
+              line="{{ item }}"
+  with_items:
+    - "* soft nofile 32768"
+    - "* hard nofile 32768"
+
+- name: Set nproc limits
+  lineinfile: dest=/etc/security/limits.d/90-nproc.conf
+              insertafter=EOF
+              state=present
+              create=yes
+              line="{{ item }}"
+              mode=0644
+  with_items:
+    - "* soft nproc 32768"
+    - "* hard nproc 32768"
+
+- name: Set the tuned profile
+  copy: src=tuned.conf
+        dest=/etc/tuned/cassandra/
+        mode=0755
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "7"
+
+- name: Activate the tuned profile
+  shell: tuned-adm profile cassandra
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "7"
+
+- name: Enable SE linux
+  template: src=config.j2 dest=/etc/selinux/config mode=0644
+
+- name: Enable SE linux
+  selinux:
+    policy: targeted
+    state: enforcing
+
+- name: Install firewall
+  yum: name=firewalld state=present
+  notify: Enable firewalld
+
+- name: Configure firewall 
+  template: src=public.j2 dest=/etc/firewalld/zones/public.xml mode=0644
+  notify: Reload firewalld
+  tags:
+    - firewall

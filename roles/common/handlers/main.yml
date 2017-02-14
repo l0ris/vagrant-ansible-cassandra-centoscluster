@@ -1,0 +1,9 @@
+---
+- name: Enable firewalld
+  service: name=firewalld state=started enabled=yes
+- name: Reload firewalld
+  command: firewall-cmd --reload
+
+- name: Run update-grub
+  shell: "{{ update_grub }}"
+  when: ansible_distribution_major_version|int > 6
