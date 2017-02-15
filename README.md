@@ -36,3 +36,7 @@ to ssh to the virtual machine,
 vagrant ssh cassandra-node-1
 ```
 
+Running Demo :
+
+https://youtu.be/t9ypo-XYBvw
+
