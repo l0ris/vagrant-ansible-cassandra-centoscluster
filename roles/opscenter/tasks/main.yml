@@ -46,3 +46,5 @@
     return_content=yes
   when: opscenter_config.authentication
   register: current_session
+  notify:
+    - Restart server
